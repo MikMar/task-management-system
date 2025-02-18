@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway # Path to the Dockerfile
+      dockerfile: ./docker/Dockerfile # Explicitly specify the Dockerfile
+    container_name: api-gateway
+    working_dir: /app
+    volumes:
+      - ./api-gateway:/app # Mounts the api-gateway directory
+      - /app/node_modules # Avoids overwriting node_modules
+    stdin_open: true # Keeps container open for interactive shell
+    tty: true # Enables terminal access
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000" # Exposes port 3000
+    networks:
+      - tms
+
+  auth-service:
+    build:
+      context: ./auth-service # Path to the Dockerfile
+      dockerfile: ./docker/Dockerfile # Explicitly specify the Dockerfile
+    container_name: auth-service
+    working_dir: /app
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules # Avoids overwriting node_modules
+    stdin_open: true # Keeps container open for interactive shell
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "50051:50051" # gRPC port
+    environment:
+      - DATABASE_URL=mongodb://auth-db:27017/auth?replicaSet=rs0
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - auth-db
+    networks:
+      - tms
+
+  auth-db:
+    image: mongo:4.4
+    container_name: auth-db
+    command: ["bash", "/docker-entrypoint-initdb.d/init-replica.sh"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - auth-db-data:/data/db
+      - ./mongo-init/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
+    networks:
+      - tms
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://auth-db:27017/auth?replicaSet=rs0
+    ports:
+      - "8081:8081"
+    depends_on:
+      - auth-db
+    networks:
+      - tms
+
+volumes:
+  auth-db-data: {} # Define the volume here
+
+networks:
+  tms:
+    driver: bridge

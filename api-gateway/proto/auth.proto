@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+service AuthService {
+  rpc Register (RegisterRequest) returns (AuthResponse);
+  rpc Login (LoginRequest) returns (AuthResponse);
+  rpc Logout (LogoutRequest) returns (Empty);
+  rpc User (UserRequest) returns (UserResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LogoutRequest {
+  string token = 1;
+}
+
+message UserRequest {
+  string token = 1;
+}
+
+message AuthResponse {
+  string token = 1;
+}
+
+message UserResponse {
+  string id = 1;
+  string email = 2;
+  string role = 3;
+  string createdAt = 4;
+}
+
+message Empty {}
