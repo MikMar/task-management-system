@@ -14,7 +14,12 @@ services:
     tty: true # Enables terminal access
     command: sh -c "npm install && npm run dev"
     ports:
-      - "3000:3000" # Exposes port 3000
+      - "3000:3000"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - auth-service
+      - task-service
     networks:
       - tms
 
@@ -39,6 +44,40 @@ services:
     networks:
       - tms
 
+  task-service:
+    build:
+      context: ./task-service # Path to the Dockerfile
+      dockerfile: ./docker/Dockerfile # Explicitly specify the Dockerfile
+    container_name: task-service
+    working_dir: /app
+    volumes:
+      - ./task-service:/app
+      - /app/node_modules # Avoids overwriting node_modules
+    stdin_open: true # Keeps container open for interactive shell
+    command: sh -c "npm install && npx prisma generate && npm run dev"
+    ports:
+      - "50052:50052" # gRPC port
+    environment:
+      - DATABASE_URL=postgres://admin:postgres@task-db:5432/task
+    depends_on:
+      - task-db
+    networks:
+      - tms
+
+  task-db:
+    image: postgres:13
+    container_name: task-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: task
+    ports:
+      - "5432:5432"
+    volumes:
+      - task-db-data:/var/lib/postgresql/data
+    networks:
+      - tms
+
   auth-db:
     image: mongo:4.4
     container_name: auth-db
@@ -51,20 +90,9 @@ services:
     networks:
       - tms
 
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-express
-    environment:
-      - ME_CONFIG_MONGODB_URL=mongodb://auth-db:27017/auth?replicaSet=rs0
-    ports:
-      - "8081:8081"
-    depends_on:
-      - auth-db
-    networks:
-      - tms
-
 volumes:
-  auth-db-data: {} # Define the volume here
+  auth-db-data: {}
+  task-db-data: {}
 
 networks:
   tms:
