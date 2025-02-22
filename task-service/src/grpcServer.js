@@ -45,7 +45,7 @@ async function listTasks(call, callback) {
 async function getTask(call, callback) {
   await handleGrpcCall(call, callback, async (data) => {
     const task = await prisma.task.findUnique({
-      where: { id: parseInt(data.id, 10) },
+      where: { id: Number(data.id) },
     });
     if (task) {
       return task;
@@ -78,7 +78,7 @@ async function deleteTask(call, callback) {
   await handleGrpcCall(call, callback, async (data) => {
     try {
       await prisma.task.delete({
-        where: { id: data.id },
+        where: { id: Number(data.id) },
       });
       return {};
     } catch (error) {

@@ -13,7 +13,7 @@ exports.listTasks = (req, res) => {
 
 exports.getTaskById = (req, res) => {
   const taskId = { id: req.params.id };
-  handleGrpcResponse(taskClient.getTaskById.bind(taskClient), taskId, res);
+  handleGrpcResponse(taskClient.getTask.bind(taskClient), taskId, res);
 };
 
 exports.updateTask = (req, res) => {

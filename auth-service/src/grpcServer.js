@@ -70,8 +70,6 @@ async function login(call, callback) {
 async function userExists(call, callback) {
   const { userId } = call.request;
 
-  console.log(userId);
-
   if (!userId) {
     return callback({
       code: grpc.status.INVALID_ARGUMENT,
