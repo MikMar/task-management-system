@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const authClient = require("../clients/authClient");
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
@@ -9,13 +9,20 @@ const verifyToken = (req, res, next) => {
   if (!token) {
     return res.status(403).json("A token is required for authentication");
   }
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-  } catch (err) {
-    return res.status(401).json("Invalid Token");
-  }
-  return next();
+
+  // Make a gRPC call to the auth service to verify the token
+  authClient.VerifyToken({ token: token }, (error, response) => {
+    if (error) {
+      return res.status(401).json({ error: error.details || "Invalid Token" });
+    }
+
+    if (!response || !response.valid) {
+      return res.status(401).json({ error: "Invalid Token" });
+    }
+
+    req.user = { id: response.userId };
+    return next();
+  });
 };
 
 module.exports = verifyToken;

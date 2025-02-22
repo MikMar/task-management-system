@@ -10,7 +10,11 @@ const login = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-  handleGrpcResponse(authClient.Logout.bind(authClient), {}, res);
+  handleGrpcResponse(
+    authClient.Logout.bind(authClient),
+    { userId: req.user.id },
+    res
+  );
 };
 
 module.exports = {

@@ -26,10 +26,16 @@ async function register(call, callback) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword },
+      data: { email, password: hashedPassword, tokenVersion: 1 },
     });
 
-    const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(
+      { userId: user.id, tokenVersion: user.tokenVersion },
+      SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
     callback(null, { token });
   } catch (error) {
     callback({
@@ -56,7 +62,18 @@ async function login(call, callback) {
       return callback(new Error("Invalid credentials"));
     }
 
-    const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: "1h" });
+    const newTokenVersion = user.tokenVersion + 1;
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { tokenVersion: newTokenVersion },
+    });
+
+    const token = jwt.sign(
+      { userId: user.id, tokenVersion: newTokenVersion },
+      SECRET,
+      { expiresIn: "1h" }
+    );
 
     callback(null, { token });
   } catch (error) {
@@ -100,8 +117,71 @@ async function userExists(call, callback) {
   }
 }
 
+async function verifyToken(call, callback) {
+  const { token } = call.request;
+
+  if (!token) {
+    return callback({
+      code: grpc.status.INVALID_ARGUMENT,
+      details: "Token is required",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    if (!user || user.tokenVersion !== decoded.tokenVersion) {
+      return callback({
+        code: grpc.status.UNAUTHENTICATED,
+        details: "Invalid token",
+      });
+    }
+
+    callback(null, { valid: true, userId: decoded.userId });
+  } catch (error) {
+    callback({
+      code: grpc.status.UNAUTHENTICATED,
+      details: "Invalid token",
+    });
+  }
+}
+
+async function logout(call, callback) {
+  const { userId } = call.request;
+
+  if (!userId) {
+    return callback({
+      code: grpc.status.INVALID_ARGUMENT,
+      details: "User ID is required",
+    });
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: 0 },
+    });
+
+    callback(null, { success: true });
+  } catch (error) {
+    callback({
+      code: grpc.status.INTERNAL,
+      details: error.message,
+    });
+  }
+}
+
 const server = new grpc.Server();
-server.addService(authProto.service, { register, login, userExists });
+server.addService(authProto.service, {
+  register,
+  login,
+  verifyToken,
+  userExists,
+  logout,
+});
 
 server.bindAsync(
   "0.0.0.0:50051",
