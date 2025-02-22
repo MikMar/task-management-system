@@ -67,8 +67,43 @@ async function login(call, callback) {
   }
 }
 
+async function userExists(call, callback) {
+  const { userId } = call.request;
+
+  console.log(userId);
+
+  if (!userId) {
+    return callback({
+      code: grpc.status.INVALID_ARGUMENT,
+      details: "User ID is required",
+    });
+  }
+
+  if (!(typeof userId === "string" && /^[0-9a-fA-F]{24}$/.test(userId))) {
+    callback({
+      code: grpc.status.INVALID_ARGUMENT,
+      details: "Invalid userId provided",
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      return callback(null, { exists: false });
+    }
+
+    callback(null, { exists: true });
+  } catch (error) {
+    callback({
+      code: grpc.status.INTERNAL,
+      details: error.message,
+    });
+  }
+}
+
 const server = new grpc.Server();
-server.addService(authProto.service, { register, login });
+server.addService(authProto.service, { register, login, userExists });
 
 server.bindAsync(
   "0.0.0.0:50051",

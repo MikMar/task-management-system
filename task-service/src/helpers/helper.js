@@ -1,5 +1,6 @@
 const grpc = require("@grpc/grpc-js");
 const { ZodError } = require("zod");
+const authClient = require("../clients/authClient");
 
 async function handleGrpcCall(call, callback, handler) {
   try {
@@ -33,4 +34,18 @@ async function handleGrpcCall(call, callback, handler) {
   }
 }
 
-module.exports = { handleGrpcCall };
+async function checkUserExists(userId) {
+  return new Promise((resolve, reject) => {
+    authClient.UserExists({ userId: userId }, (error, response) => {
+      if (error) {
+        if (error.message === "3 INVALID_ARGUMENT: Invalid userId provided") {
+          return resolve(false);
+        }
+        return reject(new Error("Incorrect arguments passed"));
+      }
+      resolve(response.exists);
+    });
+  });
+}
+
+module.exports = { handleGrpcCall, checkUserExists };

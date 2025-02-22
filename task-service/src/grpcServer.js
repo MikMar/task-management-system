@@ -1,7 +1,7 @@
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const { PrismaClient } = require("@prisma/client");
-const { TaskSchema } = require("./schemas/taskSchema");
+const { UpdateTaskSchema, CreateTaskSchema } = require("./schemas/taskSchema");
 const { handleGrpcCall } = require("./helpers/helper");
 
 const prisma = new PrismaClient();
@@ -10,7 +10,7 @@ const taskProto = grpc.loadPackageDefinition(packageDefinition).TaskService;
 
 async function createTask(call, callback) {
   await handleGrpcCall(call, callback, async (data) => {
-    const validatedData = TaskSchema.parse(data);
+    const validatedData = await CreateTaskSchema.parseAsync(data);
     const newTask = await prisma.task
       .create({ data: validatedData })
       .catch((error) => {
@@ -31,84 +31,64 @@ async function createTask(call, callback) {
 }
 
 async function listTasks(call, callback) {
-  try {
-    const { assignedTo, status } = call.request;
+  await handleGrpcCall(call, callback, async (data) => {
+    const { assignedTo, status } = data;
     const where = {};
     if (assignedTo) where.assignedTo = assignedTo;
     if (status) where.status = status;
 
     const tasks = await prisma.task.findMany({ where });
-    callback(null, { tasks });
-  } catch (error) {
-    callback({
-      code: grpc.status.INTERNAL,
-      details: error.message,
-    });
-  }
+    return { tasks };
+  });
 }
 
 async function getTask(call, callback) {
-  try {
+  await handleGrpcCall(call, callback, async (data) => {
     const task = await prisma.task.findUnique({
-      where: { id: call.request.id },
+      where: { id: parseInt(data.id, 10) },
     });
     if (task) {
-      callback(null, task);
+      return task;
     } else {
-      callback({
-        code: grpc.status.NOT_FOUND,
-        details: "Not Found",
-      });
+      throw new Error("Not Found");
     }
-  } catch (error) {
-    callback({
-      code: grpc.status.INTERNAL,
-      details: error.message,
-    });
-  }
+  });
 }
 
 async function updateTask(call, callback) {
-  try {
-    const task = await prisma.task.update({
-      where: { id: call.request.id },
-      data: call.request,
-    });
-    callback(null, task);
-  } catch (error) {
-    if (error.code === "P2025") {
-      callback({
-        code: grpc.status.NOT_FOUND,
-        details: "Not Found",
+  await handleGrpcCall(call, callback, async (data) => {
+    try {
+      const validatedData = await UpdateTaskSchema.parseAsync(data);
+      const task = await prisma.task.update({
+        where: { id: Number(data.id) },
+        data: validatedData,
       });
-    } else {
-      callback({
-        code: grpc.status.INTERNAL,
-        details: error.message,
-      });
+      return task;
+    } catch (error) {
+      if (error.code === "P2025") {
+        throw new Error("Not Found");
+      } else {
+        throw error;
+      }
     }
-  }
+  });
 }
 
 async function deleteTask(call, callback) {
-  try {
-    await prisma.task.delete({
-      where: { id: call.request.id },
-    });
-    callback(null, {});
-  } catch (error) {
-    if (error.code === "P2025") {
-      callback({
-        code: grpc.status.NOT_FOUND,
-        details: "Not Found",
+  await handleGrpcCall(call, callback, async (data) => {
+    try {
+      await prisma.task.delete({
+        where: { id: data.id },
       });
-    } else {
-      callback({
-        code: grpc.status.INTERNAL,
-        details: error.message,
-      });
+      return {};
+    } catch (error) {
+      if (error.code === "P2025") {
+        throw new Error("Not Found");
+      } else {
+        throw error;
+      }
     }
-  }
+  });
 }
 
 const server = new grpc.Server();

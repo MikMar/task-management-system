@@ -4,7 +4,7 @@ service AuthService {
   rpc Register (RegisterRequest) returns (AuthResponse);
   rpc Login (LoginRequest) returns (AuthResponse);
   rpc Logout (LogoutRequest) returns (Empty);
-  rpc User (UserRequest) returns (UserResponse);
+  rpc UserExists (UserExistsRequest) returns (UserExistsResponse);
 }
 
 message RegisterRequest {
@@ -17,23 +17,20 @@ message LoginRequest {
   string password = 2;
 }
 
-message LogoutRequest {
-  string token = 1;
-}
-
-message UserRequest {
-  string token = 1;
-}
-
 message AuthResponse {
   string token = 1;
 }
 
-message UserResponse {
-  string id = 1;
-  string email = 2;
-  string role = 3;
-  string createdAt = 4;
+message LogoutRequest {
+  string token = 1;
+}
+
+message UserExistsRequest {
+  string userId = 1;
+}
+
+message UserExistsResponse {
+  bool exists = 1;
 }
 
 message Empty {}

@@ -1,38 +1,29 @@
-const grpc = require("@grpc/grpc-js");
-const protoLoader = require("@grpc/proto-loader");
+const taskClient = require("../clients/taskClient");
 const { handleGrpcResponse } = require("../helpers/helper");
-
-const packageDefinition = protoLoader.loadSync("proto/task.proto");
-const taskProto = grpc.loadPackageDefinition(packageDefinition).TaskService;
-
-const client = new taskProto(
-  "task-service:50052",
-  grpc.credentials.createInsecure()
-);
 
 exports.createTask = (req, res) => {
   const taskData = req.body;
-  handleGrpcResponse(client.createTask.bind(client), taskData, res);
+  handleGrpcResponse(taskClient.createTask.bind(taskClient), taskData, res);
 };
 
 exports.listTasks = (req, res) => {
   const filters = req.query;
-  handleGrpcResponse(client.listTasks.bind(client), filters, res);
+  handleGrpcResponse(taskClient.listTasks.bind(taskClient), filters, res);
 };
 
 exports.getTaskById = (req, res) => {
   const taskId = { id: req.params.id };
-  handleGrpcResponse(client.getTaskById.bind(client), taskId, res);
+  handleGrpcResponse(taskClient.getTaskById.bind(taskClient), taskId, res);
 };
 
 exports.updateTask = (req, res) => {
   const taskId = { id: req.params.id };
   const taskData = req.body;
   const updateData = { ...taskId, ...taskData };
-  handleGrpcResponse(client.updateTask.bind(client), updateData, res);
+  handleGrpcResponse(taskClient.updateTask.bind(taskClient), updateData, res);
 };
 
 exports.deleteTask = (req, res) => {
   const taskId = { id: req.params.id };
-  handleGrpcResponse(client.deleteTask.bind(client), taskId, res);
+  handleGrpcResponse(taskClient.deleteTask.bind(taskClient), taskId, res);
 };
