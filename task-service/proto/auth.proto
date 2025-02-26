@@ -6,6 +6,7 @@ service AuthService {
   rpc Logout (LogoutRequest) returns (LogoutResponse);
   rpc UserExists (UserExistsRequest) returns (UserExistsResponse);
   rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc getUserInfo (UserInforRequest) returns (UserInfoResponse);
 }
 
 message RegisterRequest {
@@ -45,6 +46,15 @@ message VerifyTokenRequest {
 message VerifyTokenResponse {
   bool valid = 1;
   string userId = 2;
+}
+
+message UserInforRequest {
+  string userId = 1;
+}
+
+message UserInfoResponse {
+  string email = 1;
+  string role = 2;
 }
 
 message Empty {}

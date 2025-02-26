@@ -21,8 +21,8 @@ message Task {
 message CreateTaskRequest {
     string title = 1;
     string description = 2;
-    int32  assignedTo = 3;
-    string status = 4;
+    string status = 3;
+    string assignedTo = 4;
   }
 
 message ListTasksRequest {

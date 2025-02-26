@@ -61,6 +61,24 @@ services:
       - DATABASE_URL=postgres://admin:postgres@task-db:5432/task
     depends_on:
       - task-db
+      - notification-service
+    networks:
+      - tms
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: ./docker/Dockerfile
+    container_name: notification-service
+    working_dir: /app
+    volumes:
+      - ./notification-service:/app
+      - /app/node_modules # Avoids overwriting node_modules
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3100:3000"
+    depends_on:
+      - kafka
     networks:
       - tms
 
@@ -87,6 +105,35 @@ services:
     volumes:
       - auth-db-data:/data/db
       - ./mongo-init/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
+    networks:
+      - tms
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - tms
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_INTERNAL://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
     networks:
       - tms
 

@@ -3,6 +3,7 @@ const protoLoader = require("@grpc/proto-loader");
 const { PrismaClient } = require("@prisma/client");
 const { UpdateTaskSchema, CreateTaskSchema } = require("./schemas/taskSchema");
 const { handleGrpcCall } = require("./helpers/helper");
+const { sendTaskCreatedMessage, connectProducer } = require("./producer");
 
 const prisma = new PrismaClient();
 const packageDefinition = protoLoader.loadSync("proto/task.proto");
@@ -19,6 +20,10 @@ async function createTask(call, callback) {
           "The table `public.Task` does not exist in the current database."
         );
       });
+
+    if (newTask.assignedTo) {
+      await sendTaskCreatedMessage(newTask.assignedTo, newTask.id);
+    }
 
     const formattedTask = {
       ...newTask,
@@ -101,10 +106,19 @@ server.addService(taskProto.service, {
   deleteTask,
 });
 
+async function start() {
+  try {
+    await connectProducer();
+  } catch (error) {
+    console.error("Error connecting Kafka producer:", error);
+  }
+}
+
 server.bindAsync(
   "0.0.0.0:50052",
   grpc.ServerCredentials.createInsecure(),
   () => {
+    start();
     console.log("Server running at http://0.0.0.0:50052");
   }
 );

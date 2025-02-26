@@ -108,7 +108,7 @@ async function userExists(call, callback) {
       return callback(null, { exists: false });
     }
 
-    callback(null, { exists: true });
+    callback(null, { exists: true, email: user.email });
   } catch (error) {
     callback({
       code: grpc.status.INTERNAL,
@@ -174,6 +174,41 @@ async function logout(call, callback) {
   }
 }
 
+async function getUserInfo(call, callback) {
+  const { userId } = call.request;
+
+  if (!userId) {
+    return callback({
+      code: grpc.status.INVALID_ARGUMENT,
+      details: "User ID is required",
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      return callback({
+        code: grpc.status.NOT_FOUND,
+        details: "User not found",
+      });
+    }
+
+    callback(null, { email: user.email, role: user.role });
+  } catch (error) {
+    callback({
+      code: grpc.status.INTERNAL,
+      details: error.message,
+    });
+  }
+}
+
 const server = new grpc.Server();
 server.addService(authProto.service, {
   register,
@@ -181,6 +216,7 @@ server.addService(authProto.service, {
   verifyToken,
   userExists,
   logout,
+  getUserInfo,
 });
 
 server.bindAsync(
