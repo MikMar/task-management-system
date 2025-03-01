@@ -13,7 +13,15 @@ const kafka = new Kafka({
   brokers: ["kafka:9093"],
 });
 
-const consumer = kafka.consumer({ groupId: "notification-group" });
+const consumer = kafka.consumer({
+  groupId: "notification-group",
+  retry: {
+    retries: 5, // Retry up to 5 times before giving up
+    initialRetryTime: 2000, // Wait 2s before retrying
+    factor: 2, // Exponential backoff factor
+    multiplier: 2, // Wait twice as long as the last retry
+  },
+});
 
 async function runConsumer() {
   await consumer.connect();
@@ -41,7 +49,8 @@ async function runConsumer() {
           }
         }
       } catch (error) {
-        console.error("Error processing message:", error);
+        console.error("Error processing message:", error.message);
+        throw error; // Rethrow the error to trigger a retry from Kafka
       }
     },
   });
