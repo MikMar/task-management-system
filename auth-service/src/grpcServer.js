@@ -209,6 +209,28 @@ async function getUserInfo(call, callback) {
   }
 }
 
+async function deleteUser(call, callback) {
+  const { userId } = call.request;
+
+  if (!userId) {
+    return callback({
+      code: grpc.status.INVALID_ARGUMENT,
+      details: "User ID is required",
+    });
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+
+    callback(null, { success: true });
+  } catch (error) {
+    callback({
+      code: grpc.status.INTERNAL,
+      details: error.message,
+    });
+  }
+}
+
 const server = new grpc.Server();
 server.addService(authProto.service, {
   register,
@@ -217,6 +239,7 @@ server.addService(authProto.service, {
   userExists,
   logout,
   getUserInfo,
+  deleteUser,
 });
 
 server.bindAsync(

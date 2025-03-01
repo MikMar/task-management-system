@@ -17,8 +17,17 @@ const logout = async (req, res) => {
   );
 };
 
+const deleteUser = async (req, res) => {
+  handleGrpcResponse(
+    authClient.DeleteUser.bind(authClient),
+    { userId: req.user.id },
+    res
+  );
+};
+
 module.exports = {
   register,
   login,
   logout,
+  deleteUser,
 };
