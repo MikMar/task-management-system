@@ -25,7 +25,12 @@ async function sendTaskCreatedMessage(userId, taskId) {
       topic: "notifications",
       messages: [{ value: JSON.stringify(messagePayload) }],
     });
-    console.log("Sent task_created message for user:", userId, "with task ID:", taskId);
+    console.log(
+      "Sent task_created message for user:",
+      userId,
+      "with task ID:",
+      taskId
+    );
   } catch (err) {
     console.error("Error sending message", err);
   }

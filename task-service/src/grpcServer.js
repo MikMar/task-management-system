@@ -3,7 +3,8 @@ const protoLoader = require("@grpc/proto-loader");
 const { PrismaClient } = require("@prisma/client");
 const { UpdateTaskSchema, CreateTaskSchema } = require("./schemas/taskSchema");
 const { handleGrpcCall } = require("./helpers/helper");
-const { sendTaskCreatedMessage, connectProducer } = require("./producer");
+const { sendTaskCreatedMessage, connectProducer } = require("./kafka/producer");
+const { connectConsumer } = require("./kafka/consumer");
 
 const prisma = new PrismaClient();
 const packageDefinition = protoLoader.loadSync("proto/task.proto");
@@ -109,6 +110,7 @@ server.addService(taskProto.service, {
 async function start() {
   try {
     await connectProducer();
+    await connectConsumer();
   } catch (error) {
     console.error("Error connecting Kafka producer:", error);
   }
