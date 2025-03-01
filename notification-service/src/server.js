@@ -3,7 +3,7 @@
 const express = require("express");
 const { Kafka } = require("kafkajs");
 const { getUserEmail } = require("./helpers/helper");
-const sendEmail = require("./clients/emailClient");
+const { safeSendEmail } = require("./services/notificationService");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,7 +31,7 @@ async function runConsumer() {
           const userEmail = await getUserEmail(data.user_id);
 
           if (userEmail && data.task_id) {
-            await sendEmail(
+            await safeSendEmail(
               userEmail,
               "New Task Assigned",
               `<h2>A new task (ID: ${data.task_id}) has been assigned to you. Check your dashboard for details.</h2>`
