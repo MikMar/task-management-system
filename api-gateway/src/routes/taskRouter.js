@@ -1,8 +1,9 @@
 const router = require("express").Router();
 const taskController = require("../controllers/taskController");
+const { taskCreationLimiter } = require("../middlewares/rateLimit");
 
 // Create a new task
-router.post("/", taskController.createTask);
+router.post("/", taskCreationLimiter, taskController.createTask);
 
 // List all tasks with optional filters
 router.get("/", taskController.listTasks);
