@@ -36,4 +36,20 @@ async function sendTaskCreatedMessage(userId, taskId) {
   }
 }
 
-module.exports = { connectProducer, sendTaskCreatedMessage };
+async function publishCompensationEvent(user) {
+  try {
+    await producer.send({
+      topic: "compensate_user_deletion",
+      messages: [{ value: JSON.stringify({ user }) }],
+    });
+    console.log(`Compensation event published for userId: ${user.id}`);
+  } catch (error) {
+    console.error("Failed to publish compensation event:", error);
+  }
+}
+
+module.exports = {
+  connectProducer,
+  sendTaskCreatedMessage,
+  publishCompensationEvent,
+};

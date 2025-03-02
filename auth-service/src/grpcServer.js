@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const crypto = require("crypto");
 const { publishUserDeleted, connectProducer } = require("./kafka/producer");
+const { connectCompensationConsumer } = require("./kafka/consumer");
 
 const prisma = new PrismaClient();
 const packageDefinition = protoLoader.loadSync("proto/auth.proto");
@@ -13,6 +14,7 @@ const authProto = grpc.loadPackageDefinition(packageDefinition).AuthService;
 const SECRET = process.env.JWT_SECRET;
 
 connectProducer().catch(console.error);
+connectCompensationConsumer().catch(console.error);
 
 async function register(call, callback) {
   const { email, password } = call.request;
@@ -223,10 +225,9 @@ async function deleteUser(call, callback) {
   }
 
   try {
-    await prisma.user.delete({ where: { id: userId } });
+    const user = await prisma.user.delete({ where: { id: userId } });
 
-    // Publish user_deleted event
-    await publishUserDeleted(userId);
+    await publishUserDeleted(user);
 
     callback(null, { success: true });
   } catch (error) {

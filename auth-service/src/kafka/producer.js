@@ -1,6 +1,9 @@
 const { Kafka } = require("kafkajs");
 
-const kafka = new Kafka({ clientId: "auth-service", brokers: ["kafka:9093"] });
+const kafka = new Kafka({
+  clientId: "auth-service",
+  brokers: ["kafka:9093"],
+});
 const producer = kafka.producer();
 
 async function connectProducer() {
@@ -9,15 +12,15 @@ async function connectProducer() {
 }
 
 // Publish user_deleted event
-async function publishUserDeleted(userId) {
+async function publishUserDeleted(user) {
   try {
     await producer.send({
       topic: "user_deleted",
-      messages: [{ value: JSON.stringify({ userId }) }],
+      messages: [{ value: JSON.stringify({ user }) }],
     });
-    console.log(`User deleted event published for userId: ${userId}`);
+    console.log(`User deleted event published for userId: ${user.id}`);
   } catch (error) {
-    console.error("ailed to publish user_deleted event:", error);
+    console.error("Failed to publish user_deleted event:", error);
   }
 }
 
